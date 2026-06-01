@@ -51,6 +51,7 @@ module.exports = function(logger){
                 profitStatus[algo] = {};
             }
             var coinStatus = {
+                configKey: coin,
                 name: poolConfig.coin.name,
                 symbol: poolConfig.coin.symbol,
                 difficulty: 0,
@@ -336,8 +337,13 @@ module.exports = function(logger){
         var daemonTasks = [];
         Object.keys(profitStatus).forEach(function(algo){
             Object.keys(profitStatus[algo]).forEach(function(symbol){
-                var coinName = profitStatus[algo][symbol].name;
-                var poolConfig = poolConfigs[coinName];
+                var coinStatus = profitStatus[algo][symbol];
+                var poolConfig = poolConfigs[coinStatus.configKey] || poolConfigs[coinStatus.name];
+                if (!poolConfig || !poolConfig.paymentProcessing || !poolConfig.paymentProcessing.daemon) {
+                    logger.error(logSystem, symbol, 'Missing pool config or daemon definition for profitability check.');
+                    callback(null);
+                    return;
+                }
                 var daemonConfig = poolConfig.paymentProcessing.daemon;
                 daemonTasks.push(function(callback){
                     _this.getDaemonInfoForCoin(symbol, daemonConfig, callback)
